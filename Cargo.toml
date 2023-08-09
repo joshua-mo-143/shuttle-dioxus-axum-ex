@@ -10,9 +10,10 @@ dioxus = "0.4.0"
 dioxus-fullstack = { version = "0.4.1", features = ["axum", "ssr"] }
 dioxus-rsx = "0.4.0"
 dioxus-ssr = "0.4.0"
-reqwest = "0.11.18"
 serde = { version = "1.0.182", features = ["derive"] }
-shuttle-axum = "0.22.0"
-shuttle-runtime = "0.22.0"
+shuttle-axum = "0.23.0"
+shuttle-runtime = "0.23.0"
+shuttle-shared-db = { version = "0.23.0", features = ["sqlx", "postgres"] }
+sqlx = { version = "0.7.1", features = ["runtime-tokio-native-tls", "postgres"] }
 tokio = "1.28.2"
 tracing = "0.1.37"

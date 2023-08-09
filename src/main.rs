@@ -2,15 +2,45 @@ use axum::{routing::{get, post}, Form, Router, response::{Redirect, IntoResponse
 use serde::Deserialize;
 use dioxus::prelude::*;
 use tracing::warn;
+use sqlx::PgPool;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
-async fn hello_world() -> Html<String> {
-    // create a VirtualDom with the app component
-    let mut app = VirtualDom::new(page);
-    // rebuild the VirtualDom before rendering
-    let _ = app.rebuild();
+const APP_NAME: &'static str = "My App";
 
-    Html(dioxus_ssr::render(&app))
+async fn submitted() -> Html<String> {
+        Html(dioxus_ssr::render_lazy(rsx!{
+        div {
+            p {
+                "You've submitted the form!"
+            }
+        }
+    }))
+}
 
+#[derive(Props)]
+pub struct ChildrenProps<'a> {
+    title: String,
+    children: Element<'a>
+}
+
+#[allow(non_snake_case)]
+pub fn Layout<'a>(cx: Scope<'a, ChildrenProps<'a>>) -> Element {
+	cx.render(rsx! {
+		head {
+            title {
+                "{&*cx.props.title}",
+            },
+            meta {
+                "charset": "utf-8",
+            },
+            meta {
+                "name": "viewport",
+                "content": "width=device-width, initial-scale=1.0"
+            },
+        }
+        &cx.props.children
+	})
 }
 
 #[derive(Deserialize)]
@@ -21,40 +51,19 @@ struct FormA {
 async fn post_form(Form(form): Form<FormA>) -> impl IntoResponse {
     warn!("{}", form.meme);
 
-    axum::http::StatusCode::OK
+    Redirect::to("/submitted")
 }
 
 async fn form() -> Html<String> {
-
-    let onsubmit = move |evt: FormEvent| {
-        cx.spawn(async move {
-            let resp = reqwest::Client::new()
-                .post("http://localhost:8000/post_form")
-                .form(&[
-                    ("meme", &evt.values["meme"]),
-                ])
-                .send()
-                .await;
-
-            match resp {
-                // Parse data from here, such as storing a response token
-                Ok(_data) => println!("Login successful!"),
-
-                //Handle any errors from the fetch here
-                Err(_err) => {
-                    println!("Login failed - you need a login server running on localhost:8080.")
-                }
-            }
-        });
-    };
-    
         Html(dioxus_ssr::render_lazy(rsx!{
+        Layout {
+            title: format!("{APP_NAME} - Form"),
         form {
             "method": "POST",
             "action": "/formsubs",
             "name": "myForm",
-            "prevent_default": true,
-            onsubmit: onsubmit,
+            "prevent_default": "onsubmit",
+            onsubmit: move |evt| println!("{evt:?}"),
             "Meme",
             label {
                 "for": "meme",
@@ -71,24 +80,27 @@ async fn form() -> Html<String> {
                 "Submit"
             }
         }
-    }))
+    }}))
 }
 
+pub type AppState = Arc<Mutex<App>>;
+
+pub struct App {
+    db: PgPool,
+}
 
 #[shuttle_runtime::main]
-async fn axum() -> shuttle_axum::ShuttleAxum {
+async fn axum(
+    // #[shuttle_shared_db::Postgres] db: PgPool
+) -> shuttle_axum::ShuttleAxum {
+
+    // let state = Arc::new(Mutex::new(App {db}));
+
     let router = Router::new()
-        .route("/", get(hello_world))
-        .route("/form", get(form))
+        .route("/", get(form))
+        .route("/submitted", get(submitted))
         .route("/formsubs", post(post_form));
+        // .with_state(state);
 
     Ok(router.into())
-}
-
-fn page(cx: Scope) -> Element {
-    cx.render(rsx! {
-        p {
-            "Hello world!"
-        }
-    })
 }
