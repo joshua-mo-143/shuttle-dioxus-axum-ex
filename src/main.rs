@@ -1,10 +1,13 @@
 use axum::{routing::{get, post}, Form, Router, response::{Redirect, IntoResponse, Html}};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use dioxus::prelude::*;
+use dioxus_fullstack::prelude::*;
+use dioxus_router::prelude::*;
 use tracing::warn;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::thread::Thread;
 
 const APP_NAME: &'static str = "My App";
 
@@ -89,18 +92,41 @@ pub struct App {
     db: PgPool,
 }
 
+struct CustomService {}
+
 #[shuttle_runtime::main]
 async fn axum(
     // #[shuttle_shared_db::Postgres] db: PgPool
-) -> shuttle_axum::ShuttleAxum {
+) -> Result<CustomService, shuttle_runtime::Error> {
+    Ok(CustomService{})
+}
 
-    // let state = Arc::new(Mutex::new(App {db}));
+#[shuttle_runtime::async_trait]
+impl shuttle_runtime::Service for CustomService {
+    async fn bind(
+        mut self,
+        addr: std::net::SocketAddr
+    ) -> Result<(), shuttle_runtime::Error> {
+        let config = LaunchBuilder::<FullstackRouterConfig<Route>>::router();
 
-    let router = Router::new()
-        .route("/", get(form))
-        .route("/submitted", get(submitted))
-        .route("/formsubs", post(post_form));
-        // .with_state(state);
+        thread::spawn(|| move {
+            config.launch();
+        });
 
-    Ok(router.into())
+        Ok(())
+    }
+}
+
+#[derive(Clone, Routable, Debug, PartialEq, Deserialize, Serialize)]
+enum Route {
+    #[route("/")]
+    Home {}
+}
+
+fn Home(cx: Scope) -> Element {
+    cx.render(rsx!{
+        div {
+            "Hello world!"
+        }
+    })
 }

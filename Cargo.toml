@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.6.18", features = ["macros"] }
 axum-macros = "0.3.8"
-dioxus = "0.4.0"
-dioxus-fullstack = { version = "0.4.1", features = ["axum", "ssr"] }
-dioxus-rsx = "0.4.0"
-dioxus-ssr = "0.4.0"
+dioxus = {git = "https://github.com/dioxuslabs/dioxus"}
+dioxus-fullstack = { git = "https://github.com/dioxuslabs/dioxus", features = ["axum", "ssr", "router"] }
+dioxus-router = { git = "https://github.com/dioxuslabs/dioxus", version = "0.4.1" }
+dioxus-ssr = {git = "https://github.com/dioxuslabs/dioxus"}
 serde = { version = "1.0.182", features = ["derive"] }
 shuttle-axum = "0.23.0"
 shuttle-runtime = "0.23.0"
